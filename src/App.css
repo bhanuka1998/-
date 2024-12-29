@@ -24,6 +24,17 @@
   color: white;
 }
 
+/* index.css or App.css */
+html,
+body {
+  height: 100%;
+  margin: 0;
+  background-image: url('./util/images/background-reactcrudd.jpg');
+  background-size: cover;
+  background-position: center;
+  background-repeat: no-repeat;
+}
+
 .App-link {
   color: #61dafb;
 }

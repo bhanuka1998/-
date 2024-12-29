@@ -1,58 +1,88 @@
-import React from 'react';
+import React, { useEffect, useState } from 'react';
+import { useParams, useNavigate } from 'react-router-dom';
 import { useForm, Controller } from 'react-hook-form';
 import { TextField, Button, Box, Typography } from '@mui/material';
 import { yupResolver } from '@hookform/resolvers/yup';
 import { ToastContainer, toast } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
-import { studentValidationSchema } from '../util/validationSchemas'; // Import validation schema
 import axios from 'axios';
-import { useNavigate } from 'react-router-dom';
+import { studentValidationSchema } from '../util/validationSchemas';
 
-const CreateStudent = () => {
-  // react-hook-form setup
+const UpdateStudent = () => {
+  const { studentId } = useParams(); // Retrieve student ID from route params
+  const navigate = useNavigate();
+  const [loading, setLoading] = useState(true);
+
   const {
     control,
     handleSubmit,
+    setValue,
     reset,
     formState: { errors },
   } = useForm({
-    resolver: yupResolver(studentValidationSchema), // Use imported validation schema
+    resolver: yupResolver(studentValidationSchema),
     defaultValues: {
       studentId: '',
       studentName: '',
       studentEmail: '',
     },
   });
-  const navigate = useNavigate();
+
+  // Fetch student data based on the studentId from the URL
+  useEffect(() => {
+    const fetchStudent = async () => {
+      if (!studentId) {
+        toast.error('Student ID is missing.');
+        return;
+      }
+
+      try {
+        const response = await axios.get(
+          `https://localhost:7078/api/Students/get-student-from-id/${studentId}`
+        );
+        const studentData = response.data;
+        setValue('studentId', studentData.studentId); // Pre-fill studentId
+        setValue('studentName', studentData.studentName);
+        setValue('studentEmail', studentData.studentEmail);
+        setLoading(false);
+      } catch (error) {
+        console.error('Error fetching student data:', error);
+        toast.error('Failed to fetch student data.');
+        setLoading(false);
+      }
+    };
+
+    fetchStudent();
+  }, [studentId, setValue]);
 
   // Handle form submission
   const onSubmit = async (data) => {
     try {
-      const response = await axios.post(
-        'https://localhost:7078/api/Students/create-student',
+      await axios.put(
+        `https://localhost:7078/api/Students/update-student/${studentId}`,
         data
       );
-      toast.success('Student created successfully.');
-      console.log('Response:', response);
-      reset(); // Reset form fields
-      navigate('/students-list'); // Redirect to students list page
+      toast.success('Student updated successfully.');
+      reset();
+      navigate('/students-list'); // Redirect to Students list
     } catch (error) {
-      console.error('Error creating student:', error);
+      console.error('Error updating student:', error);
       if (error.response) {
-        // Display error message from backend if available
         toast.error(`Error: ${error.response.data}`);
       } else {
-        toast.error('Failed to create student. Please try again.');
+        toast.error('Failed to update student.');
       }
-      reset();
     }
   };
 
-  // Handle form errors
   const onError = (errors) => {
-    console.log('Errors:', errors);
     toast.error('Please correct the errors in the form.');
+    console.log('Errors:', errors);
   };
+
+  if (loading) {
+    return <div>Loading...</div>; // Display a loader while data is being fetched
+  }
 
   return (
     <Box
@@ -77,7 +107,7 @@ const CreateStudent = () => {
         }}
       >
         <Typography variant="h5" mb={2} textAlign="center">
-          Create Student
+          Update Student
         </Typography>
         <form onSubmit={handleSubmit(onSubmit, onError)}>
           <Box mb={3}>
@@ -89,8 +119,9 @@ const CreateStudent = () => {
                   {...field}
                   label="Student ID"
                   fullWidth
+                  disabled
                   error={!!errors.studentId}
-                  helperText={errors.studentId ? errors.studentId.message : ''}
+                  helperText={errors.studentId?.message}
                 />
               )}
             />
@@ -105,9 +136,7 @@ const CreateStudent = () => {
                   label="Student Name"
                   fullWidth
                   error={!!errors.studentName}
-                  helperText={
-                    errors.studentName ? errors.studentName.message : ''
-                  }
+                  helperText={errors.studentName?.message}
                 />
               )}
             />
@@ -122,15 +151,13 @@ const CreateStudent = () => {
                   label="Student Email"
                   fullWidth
                   error={!!errors.studentEmail}
-                  helperText={
-                    errors.studentEmail ? errors.studentEmail.message : ''
-                  }
+                  helperText={errors.studentEmail?.message}
                 />
               )}
             />
           </Box>
           <Button variant="contained" type="submit" fullWidth>
-            Submit
+            Update
           </Button>
         </form>
         <ToastContainer />
@@ -139,4 +166,4 @@ const CreateStudent = () => {
   );
 };
 
-export default CreateStudent;
+export default UpdateStudent;
